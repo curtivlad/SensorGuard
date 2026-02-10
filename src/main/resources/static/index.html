@@ -3,8 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SensorGuard - Real-time Monitoring</title>
+    <title>SensorGuard - Real-time Monitoring Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5568d3;
+            --secondary: #764ba2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #64748b;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,135 +26,375 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 0;
+            overflow-x: hidden;
         }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        header {
-            background: white;
-            padding: 20px 30px;
-            border-radius: 15px;
-            margin-bottom: 20px;
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem 2rem;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 3px solid var(--primary);
         }
 
-        h1 {
-            color: #667eea;
-            font-size: 2em;
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
-        .status {
-            display: inline-block;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            margin-left: 20px;
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
 
-        .status.connected {
-            background: #10b981;
-            color: white;
+        .logo h1 {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 2rem;
+            font-weight: 800;
         }
 
-        .status.disconnected {
-            background: #ef4444;
-            color: white;
+        .header-stats {
+            display: flex;
+            gap: 3rem;
         }
 
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
+        .stat-item {
+            text-align: center;
+            min-width: 80px;
         }
 
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 0.25rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .status-badge.connected {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge.disconnected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .pulse {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.9); }
+        }
+
+        /* Container */
+        .container {
+            max-width: 1600px;
+            margin: 2rem auto;
+            padding: 0 2rem 2rem;
+        }
+
+        /* Cards */
         .card {
             background: white;
-            padding: 25px;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            height: 100%;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            letter-spacing: 0.3px;
+        }
+
+        .card-icon {
+            font-size: 1.75rem;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
             border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 2rem 1.5rem;
+            position: relative;
+            overflow: hidden;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
-        h2 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.5em;
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
         }
 
-        .sensor-item {
-            padding: 15px;
-            margin: 10px 0;
-            background: #f8fafc;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
+        .stat-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            opacity: 0.95;
+            margin-bottom: 1rem;
+            letter-spacing: 0.3px;
+        }
+
+        .stat-card .value {
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .three-column-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        .two-column-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        /* Sensors */
+        .sensors-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .sensor-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border-left: 4px solid var(--primary);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .sensor-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .sensor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            gap: 0.75rem;
         }
 
         .sensor-name {
-            font-weight: bold;
-            color: #1e293b;
+            font-weight: 700;
+            color: var(--dark);
+            font-size: 1.1rem;
+            line-height: 1.4;
+            flex: 1;
         }
 
         .sensor-type {
-            color: #64748b;
-            font-size: 0.9em;
+            display: inline-block;
+            padding: 0.375rem 0.875rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .sensor-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        .sensor-info span {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Form */
+        .form-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
 
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 1.5rem;
         }
 
-        label {
+        .form-group label {
             display: block;
-            margin-bottom: 5px;
-            color: #475569;
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 0.3px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 10px;
+            font-size: 1.05rem;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            transition: all 0.3s;
             font-weight: 500;
         }
 
-        select, input {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 1em;
-        }
-
-        select:focus, input:focus {
+        .form-control:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: white;
+            background: rgba(255,255,255,0.25);
         }
 
-        button {
-            background: #667eea;
-            color: white;
+        .form-control option {
+            background: var(--dark);
+            padding: 0.75rem;
+        }
+
+        .form-control::placeholder {
+            color: rgba(255,255,255,0.6);
+            font-weight: 400;
+        }
+
+        .btn {
+            background: white;
+            color: var(--primary);
             border: none;
-            padding: 12px 25px;
-            border-radius: 8px;
-            font-size: 1em;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.3s;
+            width: 100%;
+            letter-spacing: 0.5px;
         }
 
-        button:hover {
-            background: #5568d3;
+        .btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
 
-        button:active {
+        .btn:active {
             transform: translateY(0);
         }
 
-        .alert {
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 10px;
-            animation: slideIn 0.3s;
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 350px;
+            margin-top: 1rem;
+        }
+
+        /* Readings */
+        .readings-list {
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .reading-item {
+            background: var(--light);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--success);
+            transition: all 0.3s;
+            animation: slideIn 0.3s ease;
         }
 
         @keyframes slideIn {
@@ -154,116 +408,353 @@
             }
         }
 
-        .alert.CRITICAL {
+        .reading-item.anomaly {
             background: #fee2e2;
-            border-left: 4px solid #dc2626;
+            border-left-color: var(--danger);
         }
 
-        .alert.HIGH {
-            background: #fed7aa;
-            border-left: 4px solid #ea580c;
-        }
-
-        .alert.MEDIUM {
-            background: #fef3c7;
-            border-left: 4px solid #f59e0b;
-        }
-
-        .alert.LOW {
-            background: #dbeafe;
-            border-left: 4px solid #3b82f6;
-        }
-
-        .alert-time {
-            font-size: 0.85em;
-            color: #64748b;
-        }
-
-        .reading {
-            padding: 12px;
-            margin: 8px 0;
-            background: #f1f5f9;
-            border-radius: 8px;
+        .reading-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 0.75rem;
+            gap: 1rem;
         }
 
-        .reading.anomaly {
-            background: #fee2e2;
-            border-left: 3px solid #dc2626;
+        .reading-sensor {
+            font-weight: 700;
+            color: var(--dark);
+            font-size: 1.05rem;
+        }
+
+        .reading-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 0.5rem 0;
+        }
+
+        .reading-time {
+            font-size: 0.9rem;
+            color: var(--gray);
+            font-weight: 500;
         }
 
         .badge {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            font-weight: 600;
+            display: inline-block;
+            padding: 0.375rem 1rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
         }
 
-        .badge.anomaly {
+        .badge.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge.danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Alerts */
+        .alerts-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .alert-item {
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            animation: alertPulse 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes alertPulse {
+            0% { transform: scale(0.95); opacity: 0; }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .alert-item.CRITICAL {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border-left: 5px solid #dc2626;
+        }
+
+        .alert-item.HIGH {
+            background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+            border-left: 5px solid #ea580c;
+        }
+
+        .alert-item.MEDIUM {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 5px solid #f59e0b;
+        }
+
+        .alert-item.LOW {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-left: 5px solid #3b82f6;
+        }
+
+        .alert-severity {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 15px;
+            font-weight: 800;
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        .alert-item.CRITICAL .alert-severity {
             background: #dc2626;
             color: white;
         }
 
-        .badge.normal {
-            background: #10b981;
+        .alert-item.HIGH .alert-severity {
+            background: #ea580c;
             color: white;
         }
 
-        #readings {
-            max-height: 400px;
-            overflow-y: auto;
+        .alert-item.MEDIUM .alert-severity {
+            background: #f59e0b;
+            color: white;
         }
 
-        #alerts {
-            max-height: 400px;
-            overflow-y: auto;
+        .alert-item.LOW .alert-severity {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .alert-message {
+            color: var(--dark);
+            margin: 0.75rem 0;
+            font-size: 1rem;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        .alert-time {
+            font-size: 0.9rem;
+            color: var(--gray);
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: white;
+            padding: 1.25rem 1.75rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 1000;
+            animation: toastIn 0.3s ease;
+            font-weight: 600;
+            font-size: 1rem;
+            border-left: 4px solid var(--primary);
+        }
+
+        @keyframes toastIn {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .three-column-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .two-column-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-stats {
+                display: none;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .logo h1 {
+                font-size: 1.5rem;
+            }
+            .container {
+                padding: 0 1rem 1rem;
+            }
         }
     </style>
 </head>
 <body>
+<!-- Header -->
+<div class="header">
+    <div class="header-content">
+        <div class="logo">
+            <h1>🛡️ SensorGuard</h1>
+        </div>
+        <div class="header-stats">
+            <div class="stat-item">
+                <div class="stat-value" id="totalSensors">0</div>
+                <div class="stat-label">Sensors</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalReadings">0</div>
+                <div class="stat-label">Readings</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalAnomalies">0</div>
+                <div class="stat-label">Anomalies</div>
+            </div>
+        </div>
+        <div class="status-badge" id="wsStatus">
+            <span class="pulse"></span>
+            Connecting...
+        </div>
+    </div>
+</div>
+
+<!-- Main Container -->
 <div class="container">
-    <header>
-        <h1>🛡️ SensorGuard</h1>
-        <span class="status" id="wsStatus">Connecting...</span>
-    </header>
-
-    <div class="grid">
-        <!-- Sensors List -->
-        <div class="card">
-            <h2>📊 Active Sensors</h2>
-            <div id="sensors">Loading sensors...</div>
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Active Sensors</h3>
+            <div class="value" id="activeSensorsCount">0</div>
         </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+            <h3>Normal Readings</h3>
+            <div class="value" id="normalCount">0</div>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+            <h3>Anomalies Detected</h3>
+            <div class="value" id="anomalyCount">0</div>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+            <h3>Active Alerts</h3>
+            <div class="value" id="alertCount">0</div>
+        </div>
+    </div>
 
-        <!-- Ingest Data -->
-        <div class="card">
-            <h2>📥 Ingest Sensor Data</h2>
-            <form id="ingestForm">
-                <div class="form-group">
-                    <label for="sensorSelect">Select Sensor:</label>
-                    <select id="sensorSelect" required>
-                        <option value="">-- Select Sensor --</option>
-                    </select>
+    <!-- Main Grid -->
+    <div class="main-grid">
+        <!-- First Row: 3 Columns -->
+        <div class="three-column-row">
+            <!-- Sensors List -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="card-icon">📊</span>
+                        Active Sensors
+                    </h2>
                 </div>
-                <div class="form-group">
-                    <label for="valueInput">Value:</label>
-                    <input type="number" id="valueInput" step="0.01" required placeholder="Enter value">
+                <div class="sensors-grid" id="sensors">
+                    <p style="color: #64748b; text-align: center;">Loading sensors...</p>
                 </div>
-                <button type="submit">Submit Reading</button>
-            </form>
+            </div>
+
+            <!-- Ingest Form -->
+            <div class="card form-card">
+                <div class="card-header">
+                    <h2 class="card-title" style="color: white;">
+                        <span class="card-icon">📥</span>
+                        Ingest Sensor Data
+                    </h2>
+                </div>
+                <form id="ingestForm">
+                    <div class="form-group">
+                        <label>Select Sensor</label>
+                        <select id="sensorSelect" class="form-control" required>
+                            <option value="">-- Choose Sensor --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Value</label>
+                        <input type="number" id="valueInput" class="form-control" step="0.01" required placeholder="Enter reading value">
+                    </div>
+                    <button type="submit" class="btn">Submit Reading</button>
+                </form>
+            </div>
+
+            <!-- Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="card-icon">📈</span>
+                        Real-Time Chart
+                    </h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="readingsChart"></canvas>
+                </div>
+            </div>
         </div>
 
-        <!-- Recent Readings -->
-        <div class="card">
-            <h2>📈 Recent Readings</h2>
-            <div id="readings">No readings yet...</div>
-        </div>
+        <!-- Second Row: 2 Columns -->
+        <div class="two-column-row">
+            <!-- Recent Readings -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="card-icon">📋</span>
+                        Recent Readings
+                    </h2>
+                </div>
+                <div class="readings-list" id="readings">
+                    <p style="color: #64748b; text-align: center; padding: 2rem;">No readings yet...</p>
+                </div>
+            </div>
 
-        <!-- Alerts -->
-        <div class="card">
-            <h2>🚨 Alerts</h2>
-            <div id="alerts">No alerts yet...</div>
+            <!-- Alerts -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="card-icon">🚨</span>
+                        Active Alerts
+                    </h2>
+                </div>
+                <div class="alerts-list" id="alerts">
+                    <p style="color: #64748b; text-align: center; padding: 2rem;">No alerts yet...</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -273,32 +764,124 @@
 <script>
     const API_BASE = window.location.origin;
     let stompClient = null;
-    const maxReadings = 10;
-    const maxAlerts = 10;
+    let readingsChart = null;
+    let stats = {
+        totalReadings: 0,
+        normalCount: 0,
+        anomalyCount: 0,
+        alertCount: 0
+    };
 
-    // Load sensors on page load
+    // Initialize Chart
+    function initChart() {
+        const ctx = document.getElementById('readingsChart').getContext('2d');
+        readingsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: []
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 12,
+                                weight: 'bold'
+                            },
+                            padding: 15
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                size: 10
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Update chart with new reading
+    function updateChart(reading) {
+        const now = new Date(reading.timestamp).toLocaleTimeString();
+
+        // Find or create dataset for this sensor
+        let dataset = readingsChart.data.datasets.find(ds => ds.label === reading.sensorName);
+
+        if (!dataset) {
+            const color = `hsl(${Math.random() * 360}, 70%, 50%)`;
+            dataset = {
+                label: reading.sensorName,
+                data: [],
+                borderColor: color,
+                backgroundColor: color + '20',
+                tension: 0.4,
+                borderWidth: 2
+            };
+            readingsChart.data.datasets.push(dataset);
+        }
+
+        dataset.data.push(reading.value);
+        readingsChart.data.labels.push(now);
+
+        // Keep only last 20 points
+        if (readingsChart.data.labels.length > 20) {
+            readingsChart.data.labels.shift();
+            readingsChart.data.datasets.forEach(ds => ds.data.shift());
+        }
+
+        readingsChart.update();
+    }
+
+    // Load sensors
     async function loadSensors() {
         try {
             const response = await fetch(`${API_BASE}/api/sensors`);
             const sensors = await response.json();
 
+            document.getElementById('totalSensors').textContent = sensors.length;
+            document.getElementById('activeSensorsCount').textContent = sensors.filter(s => s.active).length;
+
             const sensorsDiv = document.getElementById('sensors');
             const sensorSelect = document.getElementById('sensorSelect');
 
             sensorsDiv.innerHTML = '';
-            sensorSelect.innerHTML = '<option value="">-- Select Sensor --</option>';
+            sensorSelect.innerHTML = '<option value="">-- Choose Sensor --</option>';
 
             sensors.forEach(sensor => {
-                // Display sensor
-                const sensorItem = document.createElement('div');
-                sensorItem.className = 'sensor-item';
-                sensorItem.innerHTML = `
-                        <div class="sensor-name">${sensor.name}</div>
-                        <div class="sensor-type">${sensor.type} (${sensor.sensorId}) - ${sensor.unit}</div>
+                // Sensor card
+                const card = document.createElement('div');
+                card.className = 'sensor-card';
+                card.innerHTML = `
+                        <div class="sensor-header">
+                            <div class="sensor-name">${sensor.name}</div>
+                            <div class="sensor-type">${sensor.type}</div>
+                        </div>
+                        <div class="sensor-info">
+                            <span>📍 ${sensor.location}</span>
+                            <span>🔢 ${sensor.sensorId} • ${sensor.unit}</span>
+                        </div>
                     `;
-                sensorsDiv.appendChild(sensorItem);
+                sensorsDiv.appendChild(card);
 
-                // Add to select
+                // Select option
                 const option = document.createElement('option');
                 option.value = sensor.sensorId;
                 option.textContent = `${sensor.name} (${sensor.type})`;
@@ -306,7 +889,7 @@
             });
         } catch (error) {
             console.error('Error loading sensors:', error);
-            document.getElementById('sensors').innerHTML = '<p style="color: red;">Error loading sensors</p>';
+            document.getElementById('sensors').innerHTML = '<p style="color: #ef4444; text-align: center; padding: 1rem;">Error loading sensors</p>';
         }
     }
 
@@ -320,21 +903,19 @@
         try {
             const response = await fetch(`${API_BASE}/api/readings/ingest`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sensorId, value })
             });
 
             if (response.ok) {
                 document.getElementById('valueInput').value = '';
-                alert('✅ Reading submitted successfully!');
+                showToast('✅ Reading submitted successfully!');
             } else {
-                alert('❌ Error submitting reading');
+                showToast('❌ Error submitting reading');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('❌ Error submitting reading');
+            showToast('❌ Error submitting reading');
         }
     });
 
@@ -345,77 +926,111 @@
 
         stompClient.connect({}, function(frame) {
             console.log('Connected: ' + frame);
-            document.getElementById('wsStatus').textContent = 'Connected';
-            document.getElementById('wsStatus').className = 'status connected';
+            const statusEl = document.getElementById('wsStatus');
+            statusEl.innerHTML = '<span class="pulse"></span> Connected';
+            statusEl.className = 'status-badge connected';
 
-            // Subscribe to readings
             stompClient.subscribe('/topic/readings', function(message) {
                 const data = JSON.parse(message.body);
                 addReading(data.payload);
             });
 
-            // Subscribe to alerts
             stompClient.subscribe('/topic/alerts', function(message) {
                 const data = JSON.parse(message.body);
                 addAlert(data.payload);
             });
         }, function(error) {
             console.log('WebSocket error:', error);
-            document.getElementById('wsStatus').textContent = 'Disconnected';
-            document.getElementById('wsStatus').className = 'status disconnected';
-
-            // Retry connection after 5 seconds
+            const statusEl = document.getElementById('wsStatus');
+            statusEl.innerHTML = '<span class="pulse"></span> Disconnected';
+            statusEl.className = 'status-badge disconnected';
             setTimeout(connect, 5000);
         });
     }
 
     function addReading(reading) {
-        const readingsDiv = document.getElementById('readings');
+        stats.totalReadings++;
+        if (reading.isAnomaly) {
+            stats.anomalyCount++;
+        } else {
+            stats.normalCount++;
+        }
+        updateStats();
 
-        const readingEl = document.createElement('div');
-        readingEl.className = reading.isAnomaly ? 'reading anomaly' : 'reading';
-        readingEl.innerHTML = `
-                <div>
-                    <strong>${reading.sensorName}</strong><br>
-                    <small>${new Date(reading.timestamp).toLocaleString()}</small>
-                </div>
-                <div>
-                    <strong>${reading.value.toFixed(2)} ${reading.sensorType}</strong>
-                    <span class="badge ${reading.isAnomaly ? 'anomaly' : 'normal'}">
+        const readingsDiv = document.getElementById('readings');
+        if (readingsDiv.querySelector('p')) {
+            readingsDiv.innerHTML = '';
+        }
+
+        const item = document.createElement('div');
+        item.className = reading.isAnomaly ? 'reading-item anomaly' : 'reading-item';
+        item.innerHTML = `
+                <div class="reading-header">
+                    <div class="reading-sensor">${reading.sensorName}</div>
+                    <span class="badge ${reading.isAnomaly ? 'danger' : 'success'}">
                         ${reading.isAnomaly ? '⚠️ ANOMALY' : '✓ Normal'}
                     </span>
                 </div>
+                <div class="reading-value">${reading.value.toFixed(2)} ${reading.sensorType}</div>
+                <div class="reading-time">${new Date(reading.timestamp).toLocaleString()}</div>
             `;
 
-        readingsDiv.insertBefore(readingEl, readingsDiv.firstChild);
+        readingsDiv.insertBefore(item, readingsDiv.firstChild);
 
-        // Keep only last N readings
-        while (readingsDiv.children.length > maxReadings) {
+        while (readingsDiv.children.length > 15) {
             readingsDiv.removeChild(readingsDiv.lastChild);
         }
+
+        updateChart(reading);
     }
 
     function addAlert(alert) {
-        const alertsDiv = document.getElementById('alerts');
+        stats.alertCount++;
+        updateStats();
 
-        const alertEl = document.createElement('div');
-        alertEl.className = `alert ${alert.severity}`;
-        alertEl.innerHTML = `
-                <div><strong>${alert.severity}</strong> - ${alert.sensorName}</div>
-                <div>${alert.message}</div>
+        const alertsDiv = document.getElementById('alerts');
+        if (alertsDiv.querySelector('p')) {
+            alertsDiv.innerHTML = '';
+        }
+
+        const item = document.createElement('div');
+        item.className = `alert-item ${alert.severity}`;
+        item.innerHTML = `
+                <div class="alert-severity">${alert.severity}</div>
+                <div class="alert-message"><strong>${alert.sensorName}</strong> - ${alert.message}</div>
                 <div class="alert-time">${new Date(alert.createdAt).toLocaleString()}</div>
             `;
 
-        alertsDiv.insertBefore(alertEl, alertsDiv.firstChild);
+        alertsDiv.insertBefore(item, alertsDiv.firstChild);
 
-        // Keep only last N alerts
-        while (alertsDiv.children.length > maxAlerts) {
+        while (alertsDiv.children.length > 10) {
             alertsDiv.removeChild(alertsDiv.lastChild);
         }
+
+        showToast(`🚨 ${alert.severity} Alert: ${alert.sensorName}`);
+    }
+
+    function updateStats() {
+        document.getElementById('totalReadings').textContent = stats.totalReadings;
+        document.getElementById('normalCount').textContent = stats.normalCount;
+        document.getElementById('anomalyCount').textContent = stats.anomalyCount;
+        document.getElementById('alertCount').textContent = stats.alertCount;
+    }
+
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
     }
 
     // Initialize
     window.addEventListener('load', () => {
+        initChart();
         loadSensors();
         connect();
     });
