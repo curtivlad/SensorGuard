@@ -21,8 +21,8 @@ public class SensorReading {
     @JoinColumn(name = "sensor_id", nullable = false)
     private Sensor sensor;
 
-    @Column(nullable = false)
-    private Double value;
+    @Column(name = "reading_value", nullable = false)  // SCHIMBAT AICI
+    private Double readingValue;  // SCHIMBAT AICI
 
     @Column(name = "timestamp", nullable = false)
     private LocalDateTime timestamp;

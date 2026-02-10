@@ -35,7 +35,7 @@ public class SensorReadingService {
         // Create reading entity
         SensorReading reading = new SensorReading();
         reading.setSensor(sensor);
-        reading.setValue(readingDTO.getValue());
+        reading.setReadingValue(readingDTO.getValue());
         reading.setTimestamp(readingDTO.getTimestamp() != null ?
                 readingDTO.getTimestamp() : LocalDateTime.now());
 
@@ -54,7 +54,7 @@ public class SensorReadingService {
         // Save reading
         SensorReading saved = readingRepository.save(reading);
         log.info("Ingested reading for sensor: {} - Value: {} - Anomaly: {}",
-                sensor.getSensorId(), saved.getValue(), saved.getIsAnomaly());
+                sensor.getSensorId(), saved.getReadingValue(), saved.getIsAnomaly());
 
         // Create alert if anomaly detected
         if (saved.getIsAnomaly()) {
@@ -63,7 +63,7 @@ public class SensorReadingService {
                     "Anomaly detected for sensor %s (%s). Value: %.2f, Score: %.2f",
                     sensor.getName(),
                     sensor.getType(),
-                    saved.getValue(),
+                    saved.getReadingValue(),
                     saved.getAnomalyScore()
             );
 
@@ -117,7 +117,7 @@ public class SensorReadingService {
         return new SensorReadingDTO(
                 reading.getId(),
                 reading.getSensor().getSensorId(),
-                reading.getValue(),
+                reading.getReadingValue(),  // SCHIMBAT AICI
                 reading.getTimestamp(),
                 reading.getIsAnomaly(),
                 reading.getAnomalyScore(),
