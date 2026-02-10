@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: sensorguard-postgres
+    secrets:
+      - postgres_db
+      - postgres_user
+      - postgres_password
+    environment:
+      POSTGRES_DB_FILE: /run/secrets/postgres_db
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sensorguard_user -d sensorguard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sensorguard-network
+
+  # Python Anomaly Detector Service
+  anomaly-detector:
+    build:
+      context: ./anomaly-detector
+      dockerfile: Dockerfile
+    container_name: sensorguard-anomaly-detector
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - sensorguard-network
+
+  # Spring Boot Gateway
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sensorguard-gateway
+    secrets:
+      - postgres_user
+      - postgres_password
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sensorguard
+      SPRING_DATASOURCE_USERNAME_FILE: /run/secrets/postgres_user
+      SPRING_DATASOURCE_PASSWORD_FILE: /run/secrets/postgres_password
+      ANOMALY_DETECTOR_URL: http://anomaly-detector:5000
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      anomaly-detector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - sensorguard-network
+
+networks:
+  sensorguard-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
+secrets:
+  postgres_db:
+    file: ./secrets/postgres_db.txt
+  postgres_user:
+    file: ./secrets/postgres_user.txt
+  postgres_password:
+    file: ./secrets/postgres_password.txt
